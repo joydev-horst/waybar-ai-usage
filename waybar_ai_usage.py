@@ -125,12 +125,27 @@ TEMPLATE_STYLE = """/* Claude Code Usage Monitor Styling */
 
 
 def _confirm_changes(paths: Iterable[Path]) -> bool:
+    print("waybar-ai-usage")
+    print("──────────────")
     print("Note: this will rewrite your Waybar config; formatting/comments may change.")
-    print("This will modify the following files:")
+    print("Targets:")
     for path in paths:
-        print(f"- {path}")
+        print(f"  - {path}")
     answer = input("Proceed? [y/N] ").strip().lower()
     return answer in {"y", "yes"}
+
+
+def _print_done() -> None:
+    print("Next step: restart Waybar to apply changes (e.g. `pkill waybar && waybar &`).")
+
+
+def _list_backups(path: Path) -> list[Path]:
+    return sorted(path.parent.glob(path.name + ".bak.*"))
+
+
+def _pick_latest_backup(path: Path) -> Path | None:
+    backups = _list_backups(path)
+    return backups[-1] if backups else None
 
 
 def _find_style_region(lines: list[str]) -> tuple[int, int] | None:
@@ -291,7 +306,7 @@ def _remove_config(config_path: Path, style_path: Path, dry_run: bool) -> None:
         else:
             print(f"No changes needed in: {style_path}")
     if not dry_run:
-        print("Please restart Waybar to apply changes (e.g. `pkill waybar && waybar &`).")
+        _print_done()
 
 
 def _apply_setup(config_path: Path, style_path: Path, browsers: list[str] | None, dry_run: bool) -> None:
@@ -372,7 +387,51 @@ def _apply_setup(config_path: Path, style_path: Path, browsers: list[str] | None
         style_path.parent.mkdir(parents=True, exist_ok=True)
         style_path.write_text("\n".join(updated_style) + "\n")
         print(f"Updated: {style_path}")
-    print("Please restart Waybar to apply changes (e.g. `pkill waybar && waybar &`).")
+    _print_done()
+
+
+def _restore_config(
+    config_path: Path,
+    style_path: Path,
+    config_backup: Path | None,
+    style_backup: Path | None,
+    dry_run: bool,
+) -> None:
+    if config_backup is None:
+        config_backup = _pick_latest_backup(config_path)
+    if style_backup is None:
+        style_backup = _pick_latest_backup(style_path)
+
+    if config_backup is None and style_backup is None:
+        print("No backups found.")
+        return
+
+    if dry_run:
+        if config_backup is not None:
+            print(f"[dry-run] Would restore: {config_backup} -> {config_path}")
+        if style_backup is not None:
+            print(f"[dry-run] Would restore: {style_backup} -> {style_path}")
+        return
+
+    if config_backup is not None and config_path.exists():
+        backup = _backup_file(config_path)
+        print(f"Backup created: {backup}")
+        config_path.write_text(config_backup.read_text())
+        print(f"Restored: {config_path}")
+    elif config_backup is not None:
+        config_path.write_text(config_backup.read_text())
+        print(f"Restored: {config_path}")
+
+    if style_backup is not None and style_path.exists():
+        backup = _backup_file(style_path)
+        print(f"Backup created: {backup}")
+        style_path.write_text(style_backup.read_text())
+        print(f"Restored: {style_path}")
+    elif style_backup is not None:
+        style_path.write_text(style_backup.read_text())
+        print(f"Restored: {style_path}")
+
+    _print_done()
 
 
 def main() -> None:
@@ -441,6 +500,43 @@ def main() -> None:
         help="Skip confirmation prompt",
     )
 
+    restore = subparsers.add_parser(
+        "restore",
+        help="Restore Waybar config and style from backups",
+    )
+    restore.add_argument(
+        "--config",
+        type=Path,
+        default=DEFAULT_CONFIG,
+        help="Waybar config path (default: ~/.config/waybar/config.jsonc)",
+    )
+    restore.add_argument(
+        "--style",
+        type=Path,
+        default=DEFAULT_STYLE,
+        help="Waybar style path (default: ~/.config/waybar/style.css)",
+    )
+    restore.add_argument(
+        "--config-backup",
+        type=Path,
+        help="Path to a specific config backup",
+    )
+    restore.add_argument(
+        "--style-backup",
+        type=Path,
+        help="Path to a specific style backup",
+    )
+    restore.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Show what would change without modifying files",
+    )
+    restore.add_argument(
+        "--yes",
+        action="store_true",
+        help="Skip confirmation prompt",
+    )
+
     args = parser.parse_args()
 
     if args.command == "setup":
@@ -456,6 +552,20 @@ def main() -> None:
                 print("Aborted.")
                 return
         _remove_config(args.config.expanduser(), args.style.expanduser(), args.dry_run)
+        return
+    if args.command == "restore":
+        if not args.yes and not args.dry_run:
+            targets = [args.config.expanduser(), args.style.expanduser()]
+            if not _confirm_changes(targets):
+                print("Aborted.")
+                return
+        _restore_config(
+            args.config.expanduser(),
+            args.style.expanduser(),
+            args.config_backup.expanduser() if args.config_backup else None,
+            args.style_backup.expanduser() if args.style_backup else None,
+            args.dry_run,
+        )
         return
 
     parser.print_help()

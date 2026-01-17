@@ -25,7 +25,13 @@ This tool displays your AI coding assistant usage limits in real-time by reading
 
 ## Installation
 
-### Method 1: Using uv tool (Recommended)
+### Method 0: AUR (Recommended on Arch)
+
+```bash
+yay -S waybar-ai-usage
+```
+
+### Method 1: Using uv tool
 
 ```bash
 # Install from GitHub
@@ -35,7 +41,7 @@ uv tool install git+https://github.com/NihilDigit/waybar-ai-usage
 git clone https://github.com/NihilDigit/waybar-ai-usage
 cd waybar-ai-usage
 uv build
-uv tool install --force dist/waybar_ai_usage-0.1.6-py3-none-any.whl
+uv tool install --force dist/waybar_ai_usage-*-py3-none-any.whl
 ```
 
 ### Method 2: Development Mode
@@ -58,9 +64,13 @@ waybar-ai-usage setup
 # Cleanup helper (removes modules/styles with backups + confirmation)
 waybar-ai-usage cleanup
 
+# Restore latest backups (or pass specific backup paths)
+waybar-ai-usage restore
+
 # Preview changes without writing
 waybar-ai-usage setup --dry-run
 waybar-ai-usage cleanup --dry-run
+waybar-ai-usage restore --dry-run
 
 # Skip confirmation
 waybar-ai-usage setup --yes
