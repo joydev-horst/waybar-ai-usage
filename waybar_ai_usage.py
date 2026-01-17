@@ -8,6 +8,7 @@ import json5
 
 DEFAULT_CONFIG = Path("~/.config/waybar/config.jsonc").expanduser()
 DEFAULT_STYLE = Path("~/.config/waybar/style.css").expanduser()
+DEFAULT_EXEC = "~/.local/bin"
 
 TEMPLATE_CONFIG = """// Waybar Configuration Example
 // Add this configuration to the modules section of ~/.config/waybar/config.jsonc
@@ -236,6 +237,14 @@ def _read_template(path: Path, fallback: str) -> str:
     return fallback
 
 
+def _resolve_exec_base() -> str:
+    if Path("/usr/bin/claude-usage").exists() and Path("/usr/bin/codex-usage").exists():
+        return "/usr/bin"
+    if Path("~/.local/bin/claude-usage").expanduser().exists() and Path("~/.local/bin/codex-usage").expanduser().exists():
+        return "~/.local/bin"
+    return DEFAULT_EXEC
+
+
 def _remove_config(config_path: Path, style_path: Path, dry_run: bool) -> None:
     if not config_path.exists():
         print(f"Config not found: {config_path}")
@@ -292,7 +301,8 @@ def _apply_setup(config_path: Path, style_path: Path, browsers: list[str] | None
 
     example_config_text = _read_template(example_config, TEMPLATE_CONFIG)
     example_style_text = _read_template(example_style, TEMPLATE_STYLE)
-    example_config_data = json5.loads(example_config_text)
+    exec_base = _resolve_exec_base()
+    example_config_data = json5.loads(example_config_text.replace("~/.local/bin", exec_base))
     example_style_lines = example_style_text.splitlines()
     css_region = _extract_style_region(example_style_lines)
 
