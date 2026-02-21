@@ -14,8 +14,8 @@ from common import format_eta, format_output, get_cached_or_fetch
 # ==================== Configuration ====================
 
 CONFIG_PATH = Path("~/.config/waybar-ai-usage/copilot.conf").expanduser()
-COPILOT_ICON = "\U000f028a"  # nf-md-github (󰊤)
-COPILOT_COLOR = "#6e40c9"
+COPILOT_ICON = "\uf4b8"   # nf-seti-copilot — same as LazyVim/Neovim Copilot ()
+COPILOT_COLOR = "#8b5cf6"
 DEFAULT_QUOTA = 300
 GITHUB_API_BASE = "https://api.github.com"
 
@@ -95,8 +95,8 @@ def _fetch_copilot_usage_uncached(token: str) -> dict:
     else:
         usage_items = usage_data.get("usageItems", [])
 
-    used = sum(int(item.get("netQuantity", 0)) for item in usage_items)
-    return {"used": used, "raw": usage_data}
+    used = sum(item.get("grossQuantity", 0) for item in usage_items)
+    return {"used": round(used, 1), "raw": usage_data}
 
 
 def get_copilot_usage(token: str) -> dict:
@@ -116,7 +116,7 @@ def _next_month_reset_iso() -> str:
     return reset.isoformat()
 
 
-def print_cli(used: int, quota: int) -> None:
+def print_cli(used: float, quota: int) -> None:
     """Print usage to terminal (for debugging)."""
     pct = round(used / quota * 100) if quota > 0 else 0
     reset_str = format_eta(_next_month_reset_iso())
@@ -127,7 +127,7 @@ def print_cli(used: int, quota: int) -> None:
 
 
 def print_waybar(
-    used: int,
+    used: float,
     quota: int,
     format_str: str | None = None,
     tooltip_format: str | None = None,
@@ -137,12 +137,18 @@ def print_waybar(
     reset_iso = _next_month_reset_iso()
     reset_str = format_eta(reset_iso)
 
-    icon_styled = f"<span foreground='{COPILOT_COLOR}' size='large'>{COPILOT_ICON}</span>"
+    icon_styled = f"<span foreground='{COPILOT_COLOR}' size='large'>{COPILOT_ICON} </span>"
+    time_icon_styled = f"<span foreground='{COPILOT_COLOR}' size='large'>\U000f051a</span>"  # 󰔚
+
+    used_str = str(int(used)) if used == int(used) else str(used)
 
     data = {
         "icon": icon_styled,
         "icon_plain": COPILOT_ICON,
+        "time_icon": time_icon_styled,
+        "time_icon_plain": "\U000f051a",
         "used": used,
+        "used_str": used_str,
         "quota": quota,
         "pct": pct,
         "reset": reset_str,
@@ -151,7 +157,7 @@ def print_waybar(
     if format_str:
         text = format_output(format_str, data)
     else:
-        text = f"{icon_styled} {pct}% <span alpha='50%'>{used}/{quota}</span>"
+        text = f"{icon_styled}{pct}% {time_icon_styled} {reset_str}"
 
     if tooltip_format:
         tooltip = format_output(tooltip_format, data)
@@ -159,7 +165,7 @@ def print_waybar(
         tooltip = (
             f"GitHub Copilot Premium Requests\n"
             f"━━━━━━━━━━━━━━━━━━━━━━━━\n"
-            f"Used:   {used} / {quota} ({pct}%)\n"
+            f"Used:   {used_str} / {quota} ({pct}%)\n"
             f"Reset:  {reset_str} (next month)\n"
             f"\nClick to Refresh"
         )
@@ -235,7 +241,7 @@ def main() -> None:
 
     try:
         usage = get_copilot_usage(token)
-        used = int(usage.get("used", 0))
+        used = usage.get("used", 0)
     except Exception as e:
         if args.waybar:
             err_msg = str(e)
