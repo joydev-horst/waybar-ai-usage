@@ -18,6 +18,45 @@ This tool displays your AI coding assistant usage limits in real-time by reading
   - Requests consumed vs. included quota (default: 300)
   - Countdown to monthly reset (1st of month, 00:00 UTC)
 
+## Features
+
+- 🎨 Real-time usage percentage display
+- ⏰ Countdown timer until quota reset
+- 🚦 Color-coded warnings (green → yellow → red)
+- 🔄 Click to refresh instantly
+- 🍪 Uses browser cookies (Chrome by default, configurable) - no API key needed
+- 🎯 Special states: "Ready" (unused) and "Pause" (quota exhausted)
+- 🔁 Auto-retry on network errors
+
+## Installation
+
+### Method 0: AUR (Recommended on Arch)
+
+```bash
+yay -S waybar-ai-usage
+```
+
+### Method 1: Using uv tool
+
+```bash
+# Install from GitHub
+uv tool install git+https://github.com/NihilDigit/waybar-ai-usage
+
+# Or install locally for development
+git clone https://github.com/NihilDigit/waybar-ai-usage
+cd waybar-ai-usage
+uv build
+uv tool install --force dist/waybar_ai_usage-*-py3-none-any.whl
+```
+
+### Method 2: Development Mode
+
+```bash
+git clone https://github.com/NihilDigit/waybar-ai-usage
+cd waybar-ai-usage
+uv sync
+```
+
 ## GitHub Copilot Setup
 
 Unlike Claude and Codex, Copilot uses a **GitHub Personal Access Token** instead of browser cookies.
@@ -58,45 +97,6 @@ COPILOT_QUOTA=300
 ```bash
 copilot-usage          # Shows used/quota in terminal
 copilot-usage --waybar # Shows Waybar JSON
-```
-
-## Features
-
-- 🎨 Real-time usage percentage display
-- ⏰ Countdown timer until quota reset
-- 🚦 Color-coded warnings (green → yellow → red)
-- 🔄 Click to refresh instantly
-- 🍪 Uses browser cookies (Chrome by default, configurable) - no API key needed
-- 🎯 Special states: "Ready" (unused) and "Pause" (quota exhausted)
-- 🔁 Auto-retry on network errors
-
-## Installation
-
-### Method 0: AUR (Recommended on Arch)
-
-```bash
-yay -S waybar-ai-usage
-```
-
-### Method 1: Using uv tool
-
-```bash
-# Install from GitHub
-uv tool install git+https://github.com/NihilDigit/waybar-ai-usage
-
-# Or install locally for development
-git clone https://github.com/NihilDigit/waybar-ai-usage
-cd waybar-ai-usage
-uv build
-uv tool install --force dist/waybar_ai_usage-*-py3-none-any.whl
-```
-
-### Method 2: Development Mode
-
-```bash
-git clone https://github.com/NihilDigit/waybar-ai-usage
-cd waybar-ai-usage
-uv sync
 ```
 
 ## Usage
